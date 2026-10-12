@@ -1,3 +1,15 @@
+---
+title: VieNeu TTS
+emoji: 🦜
+colorFrom: indigo
+colorTo: purple
+sdk: gradio
+sdk_version: 5.49.1
+app_file: app.py
+pinned: false
+license: apache-2.0
+---
+
 # 🦜 VieNeu-TTS
 
 [![Awesome](https://img.shields.io/badge/Awesome-NLP-green?logo=github)](https://github.com/keon/awesome-nlp)
