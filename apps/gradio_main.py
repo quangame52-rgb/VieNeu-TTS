@@ -2642,7 +2642,16 @@ def main():
         print(f"⚠️  The Web UI is reachable beyond this machine ({where}) with no login. "
               "Set VIENEU_WEB_AUTH=user:password to require one.")
 
-    demo.queue().launch(server_name=server_name, server_port=server_port, share=share, auth=auth)
+    app, local_url, share_url = demo.queue().launch(
+        server_name=server_name, server_port=server_port, share=share, auth=auth, prevent_thread_lock=True
+    )
+    try:
+        with open("share_url.txt", "w", encoding="utf-8") as f:
+            f.write(f"LOCAL_URL={local_url}\nPUBLIC_URL={share_url}\n")
+    except Exception:
+        pass
+    print(f"🔗 Public URL: {share_url}")
+    demo.block_thread()
 
 if __name__ == "__main__":
     main()

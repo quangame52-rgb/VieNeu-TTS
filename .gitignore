@@ -19,3 +19,11 @@ finetune/output/
 
 # Merged Models
 merged_models_cache/
+
+# Local run files
+*.wav
+cloudflared.exe
+.gradio/
+public_url.txt
+share_url.txt
+
