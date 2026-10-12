@@ -76,6 +76,13 @@ def main():
         print("📱 Bạn có thể mở link trên từ MỌI TRÌNH DUYỆT, ĐIỆN THOẠI hoặc MÁY TÍNH KHÁC.")
         print("💻 Link nội bộ máy này: http://127.0.0.1:7860")
         print("⚠️  Nhấn Ctrl+C để dừng chương trình.\n")
+
+        # Tự động mở trình duyệt
+        try:
+            import webbrowser
+            webbrowser.open(public_url)
+        except Exception:
+            pass
     else:
         print("⚠️ Không lấy được link public tự động. Kiểm tra cloudflared.")
 
