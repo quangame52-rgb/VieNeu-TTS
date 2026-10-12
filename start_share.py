@@ -3,48 +3,38 @@ import re
 import subprocess
 import sys
 import time
-import urllib.request
+import webbrowser
 
+# Đảm bảo UTF-8
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-PYTHON_EXE = os.path.join(ROOT_DIR, ".venv", "Scripts", "python.exe")
 CLOUDFLARED_EXE = os.path.join(ROOT_DIR, "cloudflared.exe")
 
-def wait_for_server(url="http://127.0.0.1:7860", timeout=60):
-    print("⏳ Đang chờ máy chủ Web UI khởi động...")
-    start = time.time()
-    while time.time() - start < timeout:
-        try:
-            with urllib.request.urlopen(url, timeout=2) as resp:
-                if resp.status == 200:
-                    print("✅ Web UI đã sẵn sàng tại http://127.0.0.1:7860!")
-                    return True
-        except Exception:
-            time.sleep(1)
-    return False
+# Thêm src vào sys.path nếu cần
+src_dir = os.path.join(ROOT_DIR, "src")
+if src_dir not in sys.path:
+    sys.path.insert(0, src_dir)
+
+from apps import gradio_main
 
 def main():
     print("==================================================")
     print("   KHỞI ĐỘNG VIENEU-TTS + PUBLIC SHARE LINK")
     print("==================================================")
-
-    # 1. Khởi động Web UI
     print("🚀 Đang khởi động Gradio Web UI...")
-    web_proc = subprocess.Popen(
-        [PYTHON_EXE, os.path.join(ROOT_DIR, "apps", "gradio_main.py")],
-        cwd=ROOT_DIR,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
+
+    # 1. Khởi động Gradio trực tiếp (không khóa thread ngay để thiết lập tunnel)
+    gradio_main.demo.queue().launch(
+        server_name="127.0.0.1",
+        server_port=7860,
+        share=False,
+        prevent_thread_lock=True
     )
+    print("✅ Web UI đã sẵn sàng tại http://127.0.0.1:7860!")
 
-    if not wait_for_server():
-        print("❌ Lỗi: Web UI không khởi động được trong 60 giây.")
-        web_proc.terminate()
-        sys.exit(1)
-
-    # 2. Khởi động Cloudflare Tunnel để tạo link Public
+    # 2. Khởi động Cloudflare Tunnel
     print("\n🌐 Đang thiết lập đường hầm Cloudflare Tunnel (HTTPS công khai)...")
     tunnel_proc = subprocess.Popen(
         [CLOUDFLARED_EXE, "tunnel", "--protocol", "http2", "--url", "http://127.0.0.1:7860"],
@@ -77,28 +67,19 @@ def main():
         print("💻 Link nội bộ máy này: http://127.0.0.1:7860")
         print("⚠️  Nhấn Ctrl+C để dừng chương trình.\n")
 
-        # Tự động mở trình duyệt
         try:
-            import webbrowser
             webbrowser.open(public_url)
         except Exception:
             pass
     else:
-        print("⚠️ Không lấy được link public tự động. Kiểm tra cloudflared.")
+        print("⚠️ Không lấy được link public tự động. Bạn vẫn có thể truy cập http://127.0.0.1:7860")
 
+    # Giữ server chạy vĩnh viễn cho đến khi người dùng tắt
     try:
-        while True:
-            time.sleep(1)
-            if web_proc.poll() is not None:
-                print("Web UI đã dừng.")
-                break
-            if tunnel_proc.poll() is not None:
-                print("Tunnel đã dừng.")
-                break
-    except KeyboardInterrupt:
+        gradio_main.demo.block_thread()
+    except (KeyboardInterrupt, SystemExit):
         print("\nĐang tắt máy chủ...")
     finally:
-        web_proc.terminate()
         tunnel_proc.terminate()
 
 if __name__ == "__main__":
